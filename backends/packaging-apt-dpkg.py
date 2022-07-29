@@ -141,7 +141,11 @@ class __AptDpkgPackageInfo(PackageInfo):
                 # We don't need to update this multiple times.
                 self._sandbox_apt_cache.update(fetchProgress)
             except apt.cache.FetchFailedException as e:
-                raise SystemError(str(e))
+                # The ddebs can also be retrieved directly from Launchpad
+                if 'ddebs.ubuntu.com' in str(e):
+                    pass
+                else:
+                    raise SystemError(str(e))
             self._sandbox_apt_cache.open()
         else:
             self._sandbox_apt_cache.clear()
