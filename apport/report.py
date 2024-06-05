@@ -1600,8 +1600,16 @@ class Report(problem_report.ProblemReport):
                            'PYTHONHOME': pyhome,
                            'GCONV_PATH': '%s/usr/lib/%s/gconv' %
                            (gdb_sandbox, native_multiarch)}
-                command.insert(0, '%s/lib/%s/ld-linux-x86-64.so.2' %
-                               (gdb_sandbox, native_multiarch))
+                # 2024-06-05 bdmurray patch while waiting on upstream fixing
+                # http://launchpad.net/bugs/2067120
+                if os.path.exists(f"{gdb_sandbox}/usr/lib/{native_multiarch}/ld-linux-x86-64.so.2"):
+                    command.insert(
+                        0, f"{gdb_sandbox}/usr/lib/{native_multiarch}/ld-linux-x86-64.so.2"
+                    )
+                else:
+                    command.insert(
+                        0, f"{gdb_sandbox}/lib/{native_multiarch}/ld-linux-x86-64.so.2"
+                    )
                 command += ['--ex', 'set data-directory %s/usr/share/gdb' %
                             gdb_sandbox]
             if not os.path.exists(sandbox + executable):
