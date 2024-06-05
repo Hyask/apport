@@ -102,7 +102,7 @@ def needed_runtime_packages(report, sandbox, pkgmap_cache_dir, pkg_versions, ver
     return [(p, pkg_versions.get(p)) for p in pkgs]
 
 
-def _move_base_files_first(pkgs: list[tuple[str, (None | str)]]) -> None:
+def _move_base_files_first(pkgs):
     """Move base-files to the front or add it if missing."""
     base_files_version = None
     for i, (pkg, version) in enumerate(pkgs):
