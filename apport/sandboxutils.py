@@ -102,6 +102,17 @@ def needed_runtime_packages(report, sandbox, pkgmap_cache_dir, pkg_versions, ver
     return [(p, pkg_versions.get(p)) for p in pkgs]
 
 
+def _move_base_files_first(pkgs: list[tuple[str, (None | str)]]) -> None:
+    """Move base-files to the front or add it if missing."""
+    base_files_version = None
+    for i, (pkg, version) in enumerate(pkgs):
+        if pkg == "base-files":
+            base_files_version = version
+            pkgs.pop(i)
+            break
+    pkgs.insert(0, ("base-files", base_files_version))
+
+
 def make_sandbox(report, config_dir, cache_dir=None, sandbox_dir=None,
                  extra_packages=[], verbose=False, log_timestamps=False,
                  dynamic_origins=False):
@@ -196,6 +207,9 @@ def make_sandbox(report, config_dir, cache_dir=None, sandbox_dir=None,
         origins = set(m.findall(pkg_list))
         if origins:
             apport.log("Origins: %s" % origins)
+
+    # Install base-files first to get correct usrmerge
+    _move_base_files_first(pkgs)
 
     # unpack packages, if any, using cache and sandbox
     try:
