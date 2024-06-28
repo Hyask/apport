@@ -1,0 +1,117 @@
+#!/usr/bin/python3
+# fetch the test .crash files built by this package:
+# https://code.launchpad.net/~daisy-pluckers/error-tracker-deployment/test-crashes/
+# from this recipe:
+# https://code.launchpad.net/~daisy-pluckers/+recipe/apport-test-crashes
+# Store them in test-cashes/<release>/<arch>/. These can then be fed to
+# apport-retrace or whoopsie.
+#
+# (C) 2012 Canonical Ltd.
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+
+import urllib.request
+import re
+import os
+import tempfile
+import shutil
+import subprocess
+import sys
+from distro_info import UbuntuDistroInfo
+
+import apt
+
+index_url = "http://ppa.launchpad.net/daisy-pluckers/daisy-seeds/ubuntu/pool/main/a/apport-test-crashes/"
+
+f = urllib.request.urlopen(index_url)
+html = f.read().decode("UTF-8")
+print(html)
+f.close()
+
+# find the latest version for each release and architecture
+versions = {}  # release -> arch -> (version, filename)
+
+udi = UbuntuDistroInfo()
+release_mapping = {}
+for codename in udi.supported():
+    release_mapping[udi.version(codename).replace(" LTS", "")] = codename
+for codename in udi.supported_esm():
+    release_mapping[udi.version(codename).replace(" LTS", "")] = codename
+
+print(release_mapping)
+
+if len(sys.argv) >= 2:
+    desired_release = sys.argv[1]
+else:
+    desired_release = None
+if len(sys.argv) == 3:
+    desired_arch = sys.argv[2]
+else:
+    desired_arch = None
+
+for match in re.finditer(
+    r'href="(apport-test-crashes_)([^_]+~)([a-z]+)([\d.]+)(_)(\S+)(\.deb)"', html
+):
+    release = match.group(4)
+    print(release)
+    try:
+        release = release_mapping[release[:5]]
+    except KeyError:
+        continue
+    if desired_release:
+        if release != desired_release:
+            continue
+    arch = match.group(6)
+    if desired_arch:
+        if arch != desired_arch:
+            continue
+    version = match.group(2) + match.group(5)
+    print(release, version)
+    file = "".join(match.groups())
+    try:
+        cur_version = versions.setdefault(release, {})[arch][0]
+        if apt.apt_pkg.version_compare(version, cur_version) < 0:
+            # we already found a newer version
+            continue
+    except KeyError:
+        pass
+    versions[release][arch] = (version, file)
+
+
+# download and unpack them
+if not os.path.isdir("test-crashes"):
+    os.mkdir("test-crashes")
+
+print("========")
+from pprint import pprint
+
+pprint(versions)
+print("========")
+for release, archmap in versions.items():
+    print("Release: %s" % release)
+
+    for arch, (version, filename) in archmap.items():
+        # remove any existing crash files first
+        dest = os.path.join("test-crashes", release, arch)
+        for base, _, files in os.walk(dest):
+            for f in files:
+                if f.endswith(".crash"):
+                    os.remove(os.path.join(dest, f))
+
+        unpackdir = tempfile.mkdtemp()
+        print("  Downloading %s..." % filename)
+        deb = urllib.request.urlretrieve(index_url + "/" + filename)[0]
+        subprocess.check_call(["dpkg-deb", "-x", deb, unpackdir])
+        os.unlink(deb)
+
+        # grab all the .crash files and install them into
+        # test-crashes/release/arch/
+        for base, _, files in os.walk(unpackdir):
+            for f in files:
+                if f.endswith(".crash"):
+                    if not os.path.isdir(dest):
+                        os.makedirs(dest)
+                    # for debugging
+                    # print('    Copying to %s' % dest)
+                    shutil.copy(os.path.join(base, f), dest)
+
+        shutil.rmtree(unpackdir)

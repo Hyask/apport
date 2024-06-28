@@ -1,0 +1,2 @@
+deb http://fr.archive.ubuntu.com/ubuntu mantic main restricted universe multiverse
+deb-src http://fr.archive.ubuntu.com/ubuntu mantic main restricted universe multiverse

@@ -902,7 +902,16 @@ def get_crashdb(
       'bug_pattern_url', 'dupdb_url', and 'problem_types'.
     """
     if conf is None:
-        conf = os.environ.get("APPORT_CRASHDB_CONF", "/etc/apport/crashdb.conf")
+        default = "/etc/apport/crashdb.conf"
+        if not os.path.isfile(default):
+            default = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "etc",
+                "apport",
+                "crashdb.conf",
+            )
+            print(default)
+        conf = os.environ.get("APPORT_CRASHDB_CONF", default)
     assert conf
     settings: dict[str, Any] = {}
     with open(conf, encoding="utf-8") as f:

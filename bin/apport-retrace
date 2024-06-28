@@ -448,8 +448,9 @@ def main():
             apport.error("gdb sandboxes are only implemented for amd64 hosts")
             sys.exit(0)
         # Create a .dwz directory if it doesn't exist
-        if not os.path.exists("/usr/lib/debug/.dwz"):
-            os.mkdir("/usr/lib/debug/.dwz")
+        # 2024-06-28 - Skia - This requires root, and retracing seems to work without it.
+        # if not os.path.exists("/usr/lib/debug/.dwz"):
+        #     os.mkdir("/usr/lib/debug/.dwz")
 
     if options.sandbox:
         if options.sandbox_dir:
