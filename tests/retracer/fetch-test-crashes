@@ -24,7 +24,6 @@ index_url = "http://ppa.launchpad.net/daisy-pluckers/daisy-seeds/ubuntu/pool/mai
 
 f = urllib.request.urlopen(index_url)
 html = f.read().decode("UTF-8")
-print(html)
 f.close()
 
 # find the latest version for each release and architecture
@@ -36,8 +35,6 @@ for codename in udi.supported():
     release_mapping[udi.version(codename).replace(" LTS", "")] = codename
 for codename in udi.supported_esm():
     release_mapping[udi.version(codename).replace(" LTS", "")] = codename
-
-print(release_mapping)
 
 if len(sys.argv) >= 2:
     desired_release = sys.argv[1]
@@ -52,7 +49,6 @@ for match in re.finditer(
     r'href="(apport-test-crashes_)([^_]+~)([a-z]+)([\d.]+)(_)(\S+)(\.deb)"', html
 ):
     release = match.group(4)
-    print(release)
     try:
         release = release_mapping[release[:5]]
     except KeyError:
@@ -65,7 +61,6 @@ for match in re.finditer(
         if arch != desired_arch:
             continue
     version = match.group(2) + match.group(5)
-    print(release, version)
     file = "".join(match.groups())
     try:
         cur_version = versions.setdefault(release, {})[arch][0]
@@ -81,11 +76,6 @@ for match in re.finditer(
 if not os.path.isdir("test-crashes"):
     os.mkdir("test-crashes")
 
-print("========")
-from pprint import pprint
-
-pprint(versions)
-print("========")
 for release, archmap in versions.items():
     print("Release: %s" % release)
 

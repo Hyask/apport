@@ -272,6 +272,46 @@ jobs:
           name: coverage-${{ github.job }}
           path: ./coverage*.xml
 
+  retracer:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # TODO?
+      matrix:
+        container:
+          - ubuntu:jammy
+          - ubuntu:noble
+          - ubuntu:oracular
+    container:  # TODO?
+      image: ${{ matrix.container }}
+      # options: --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: >
+          apt-get update
+          && apt-get install --no-install-recommends --yes
+          lsb-release python3-apt python3-distro-info python3-launchpadlib
+      - name: Fetch test crashes
+        run: |
+          BASE_DIR="$(pwd)"
+          CRASHES_DIR="/tmp/crashes"
+
+          pwd
+          ls -R
+          # Get the test crashes
+          mkdir -p "$CRASHES_DIR"
+          cd "$CRASHES_DIR"
+          "$BASE_DIR"/tests/retracer/fetch-test-crashes noble amd64
+          cd -
+      - name: Retrace the crashes
+        run: |
+          BASE_DIR="$(pwd)"
+          CRASHES_DIR="/tmp/crashes"
+
+          for crash in "$CRASHES_DIR"/test-crashes/$(lsb_release -sc)/amd64/*.crash; do
+              PYTHONPATH="$BASE_DIR" python3 "$BASE_DIR"/bin/apport-retrace -S "$BASE_DIR"/tests/retracer/config -C /cache --verbose --gdb-sandbox --stdout "$crash"
+          done
+
   woke:
     name: woke
     runs-on: ubuntu-latest
